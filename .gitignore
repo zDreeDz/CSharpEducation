@@ -1,0 +1,16 @@
+# Build artifacts
+bin/
+obj/
+BuildOutput/
+
+# IDE settings
+.idea/
+.vs/
+
+# User-specific files
+*.user
+*.suo
+*.userprefs
+
+# Logs
+*.log
