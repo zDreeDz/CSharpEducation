@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 
-namespace HelloWorldApp
+namespace Task1
 {
     class Program
     {
