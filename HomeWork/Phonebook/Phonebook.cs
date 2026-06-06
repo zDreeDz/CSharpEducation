@@ -6,7 +6,7 @@ internal sealed class Phonebook
 {
     private static readonly Lazy<Phonebook> LazyInstance = new(() => new Phonebook());
     private readonly List<Abonent> _abonents = [];
-    private readonly string _filePath = Path.Combine(AppContext.BaseDirectory, "phonebook.txt");
+    private readonly string _filePath = ResolveFilePath();
 
     public static Phonebook Instance => LazyInstance.Value;
 
@@ -32,12 +32,11 @@ internal sealed class Phonebook
         }
 
         bool exists = _abonents.Any(a =>
-            string.Equals(a.PhoneNumber, phoneNumber, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase));
+            string.Equals(a.PhoneNumber, phoneNumber, StringComparison.OrdinalIgnoreCase));
 
         if (exists)
         {
-            errorMessage = "Такой абонент уже записан.";
+            errorMessage = "Абонент с таким номером уже записан.";
             return false;
         }
 
@@ -111,14 +110,30 @@ internal sealed class Phonebook
             }
 
             bool exists = _abonents.Any(a =>
-                string.Equals(a.PhoneNumber, phoneNumber, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(a.Name, name, StringComparison.OrdinalIgnoreCase));
+                string.Equals(a.PhoneNumber, phoneNumber, StringComparison.OrdinalIgnoreCase));
 
             if (!exists)
             {
                 _abonents.Add(new Abonent(phoneNumber, name));
             }
         }
+    }
+
+    private static string ResolveFilePath()
+    {
+        DirectoryInfo? directory = new(AppContext.BaseDirectory);
+
+        while (directory is not null)
+        {
+            if (directory.GetFiles("*.csproj").Length > 0)
+            {
+                return Path.Combine(directory.FullName, "phonebook.txt");
+            }
+
+            directory = directory.Parent;
+        }
+
+        return Path.Combine(AppContext.BaseDirectory, "phonebook.txt");
     }
 
     private static string Escape(string value)
