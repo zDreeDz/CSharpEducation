@@ -1,17 +1,16 @@
 using EmployeeAccountingApp;
 
-EmployeeRegistry registry = EmployeeRegistry.Instance;
+EmployeeManager<Employee> manager = new();
 
 while (true)
 {
     Console.Clear();
     Console.WriteLine("СИСТЕМА УЧЕТА СОТРУДНИКОВ");
-    Console.WriteLine("1. Добавить сотрудника");
-    Console.WriteLine("2. Обновить сотрудника");
-    Console.WriteLine("3. Получить сотрудника по ID");
-    Console.WriteLine("4. Рассчитать зарплату сотрудника");
-    Console.WriteLine("5. Показать всех сотрудников");
-    Console.WriteLine("0. Выход");
+    Console.WriteLine("1. Добавить полного сотрудника");
+    Console.WriteLine("2. Добавить частичного сотрудника");
+    Console.WriteLine("3. Получить информацию о сотруднике");
+    Console.WriteLine("4. Обновить данные сотрудника");
+    Console.WriteLine("5. Выйти");
     Console.Write("Выберите действие: ");
 
     string? choice = Console.ReadLine();
@@ -20,21 +19,18 @@ while (true)
     switch (choice)
     {
         case "1":
-            AddEmployee(registry);
+            AddFullTimeEmployee(manager);
             break;
         case "2":
-            UpdateEmployee(registry);
+            AddPartTimeEmployee(manager);
             break;
         case "3":
-            ShowEmployee(registry);
+            ShowEmployeeInfo(manager);
             break;
         case "4":
-            CalculateSalary(registry);
+            UpdateEmployee(manager);
             break;
         case "5":
-            ShowAllEmployees(registry);
-            break;
-        case "0":
             return;
         default:
             Console.WriteLine("Неизвестная команда.");
@@ -46,88 +42,96 @@ while (true)
     Console.ReadLine();
 }
 
-static void AddEmployee(EmployeeRegistry registry)
+static void AddFullTimeEmployee(EmployeeManager<Employee> manager)
 {
-    string fullName = ReadRequiredString("Введите ФИО: ");
-    string position = ReadRequiredString("Введите должность: ");
-    decimal hourlyRate = ReadDecimal("Введите почасовую ставку: ");
+    string name = ReadRequiredString("Введите имя сотрудника: ");
+    decimal baseSalary = ReadDecimal("Введите фиксированную зарплату: ");
+
+    TryExecute(() => manager.Add(new FullTimeEmployee(name, baseSalary)), "Полный сотрудник добавлен.");
+}
+
+static void AddPartTimeEmployee(EmployeeManager<Employee> manager)
+{
+    string name = ReadRequiredString("Введите имя сотрудника: ");
+    decimal hourlyRate = ReadDecimal("Введите оплату за час: ");
     decimal hoursWorked = ReadDecimal("Введите количество отработанных часов: ");
-    decimal bonus = ReadDecimal("Введите премию: ");
 
-    Employee employee = registry.AddEmployee(fullName, position, hourlyRate, hoursWorked, bonus);
-    Console.WriteLine($"Сотрудник добавлен. ID: {employee.Id}");
+    TryExecute(() => manager.Add(new PartTimeEmployee(name, hourlyRate, hoursWorked)), "Частичный сотрудник добавлен.");
 }
 
-static void UpdateEmployee(EmployeeRegistry registry)
+static void ShowEmployeeInfo(EmployeeManager<Employee> manager)
 {
-    int id = ReadInt("Введите ID сотрудника: ");
-    Employee? employee = registry.GetById(id);
-    if (employee is null)
+    string name = ReadRequiredString("Введите имя сотрудника: ");
+
+    TryExecute(() =>
     {
-        Console.WriteLine("Сотрудник не найден.");
-        return;
-    }
-
-    string fullName = ReadRequiredString("Введите новое ФИО: ");
-    string position = ReadRequiredString("Введите новую должность: ");
-    decimal hourlyRate = ReadDecimal("Введите новую почасовую ставку: ");
-    decimal hoursWorked = ReadDecimal("Введите новое количество часов: ");
-    decimal bonus = ReadDecimal("Введите новую премию: ");
-
-    registry.UpdateEmployee(id, fullName, position, hourlyRate, hoursWorked, bonus);
-    Console.WriteLine("Информация о сотруднике обновлена.");
-}
-
-static void ShowEmployee(EmployeeRegistry registry)
-{
-    int id = ReadInt("Введите ID сотрудника: ");
-    Employee? employee = registry.GetById(id);
-    if (employee is null)
-    {
-        Console.WriteLine("Сотрудник не найден.");
-        return;
-    }
-
-    PrintEmployee(employee);
-}
-
-static void CalculateSalary(EmployeeRegistry registry)
-{
-    int id = ReadInt("Введите ID сотрудника: ");
-    Employee? employee = registry.GetById(id);
-    if (employee is null)
-    {
-        Console.WriteLine("Сотрудник не найден.");
-        return;
-    }
-
-    Console.WriteLine($"Зарплата сотрудника {employee.FullName}: {employee.CalculateSalary():F2}");
-}
-
-static void ShowAllEmployees(EmployeeRegistry registry)
-{
-    IReadOnlyCollection<Employee> employees = registry.GetAll();
-    if (employees.Count == 0)
-    {
-        Console.WriteLine("Список сотрудников пуст.");
-        return;
-    }
-
-    foreach (Employee employee in employees)
-    {
+        Employee employee = manager.Get(name);
         PrintEmployee(employee);
-        Console.WriteLine();
+    });
+}
+
+static void UpdateEmployee(EmployeeManager<Employee> manager)
+{
+    string name = ReadRequiredString("Введите имя сотрудника для обновления: ");
+
+    TryExecute(() =>
+    {
+        Employee currentEmployee = manager.Get(name);
+        UpdateEmployeeData(currentEmployee);
+        manager.Update(currentEmployee);
+        Console.WriteLine("Данные сотрудника обновлены.");
+    });
+}
+
+static void UpdateEmployeeData(Employee employee)
+{
+    Console.WriteLine("Введите новые данные сотрудника.");
+    employee.Name = ReadRequiredString("Имя: ");
+
+    if (employee is FullTimeEmployee)
+    {
+        employee.BaseSalary = ReadDecimal("Фиксированная зарплата: ");
+        return;
     }
+
+    PartTimeEmployee partTimeEmployee = (PartTimeEmployee)employee;
+    employee.BaseSalary = ReadDecimal("Оплата за час: ");
+    partTimeEmployee.HoursWorked = ReadDecimal("Количество часов: ");
 }
 
 static void PrintEmployee(Employee employee)
 {
-    Console.WriteLine($"ID: {employee.Id}");
-    Console.WriteLine($"ФИО: {employee.FullName}");
-    Console.WriteLine($"Должность: {employee.Position}");
-    Console.WriteLine($"Почасовая ставка: {employee.HourlyRate:F2}");
-    Console.WriteLine($"Отработано часов: {employee.HoursWorked:F2}");
-    Console.WriteLine($"Премия: {employee.Bonus:F2}");
+    Console.WriteLine($"Имя: {employee.Name}");
+
+    if (employee is FullTimeEmployee)
+    {
+        Console.WriteLine("Тип: Полный сотрудник");
+        Console.WriteLine($"Базовая зарплата: {employee.BaseSalary:F2}");
+    }
+    else if (employee is PartTimeEmployee partTimeEmployee)
+    {
+        Console.WriteLine("Тип: Частичный сотрудник");
+        Console.WriteLine($"Оплата за час: {employee.BaseSalary:F2}");
+        Console.WriteLine($"Отработано часов: {partTimeEmployee.HoursWorked:F2}");
+    }
+
+    Console.WriteLine($"Рассчитанная зарплата: {employee.CalculateSalary():F2}");
+}
+
+static void TryExecute(Action action, string? successMessage = null)
+{
+    try
+    {
+        action();
+        if (!string.IsNullOrWhiteSpace(successMessage))
+        {
+            Console.WriteLine(successMessage);
+        }
+    }
+    catch (InvalidOperationException ex)
+    {
+        Console.WriteLine(ex.Message);
+    }
 }
 
 static string ReadRequiredString(string prompt)
@@ -142,20 +146,6 @@ static string ReadRequiredString(string prompt)
         }
 
         Console.WriteLine("Значение не должно быть пустым.");
-    }
-}
-
-static int ReadInt(string prompt)
-{
-    while (true)
-    {
-        Console.Write(prompt);
-        if (int.TryParse(Console.ReadLine(), out int value))
-        {
-            return value;
-        }
-
-        Console.WriteLine("Введите целое число.");
     }
 }
 
